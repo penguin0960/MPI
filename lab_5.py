@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 import time
 
@@ -37,8 +38,13 @@ def send(comm: MPI.Intracomm, **kwargs):
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
-
-logging.basicConfig(filename='logs\\' + __file__.split('\\')[-1][:-3] + '.log', level=logging.INFO)
+file_name = os.path.basename(__file__)
+logger = logging.getLogger(file_name)
+logging.basicConfig(
+    filename='logs.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
 
 # if len(VECTOR_A) != len(VECTOR_B):
 #     raise Exception()
@@ -68,9 +74,9 @@ if rank == 0:
             fragmend_from_b = vector_b[vector_split_len * (proc_rank - 1): vector_split_len * proc_rank]
 
         fragment_for_send = numpy.array(list(fragmend_from_a) + list(fragmend_from_b))
-        logging.info('bsend {}'.format(fragment_for_send))
+        logger.info('bsend {}'.format(fragment_for_send))
         comm.Send(buf=fragment_for_send, dest=proc_rank, tag=TAG)
-        logging.info('sended {}'.format(fragment_for_send))
+        logger.info('sended {}'.format(fragment_for_send))
         print('Proc {} sent message: {}'.format(rank, fragment_for_send))
 
     result = 0
@@ -89,7 +95,7 @@ else:
 
     buffer = numpy.arange(buffer_len)
     comm.Recv(buf=buffer, source=0, tag=TAG)
-    logging.info('recv {}'.format(buffer))
+    logger.info('recv {}'.format(buffer))
     print('Proc {} got message: {}'.format(rank, buffer))
     fragment_from_a = buffer[:buffer_len // 2]
     fragment_from_b = buffer[buffer_len // 2:]
