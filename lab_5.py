@@ -6,22 +6,23 @@ import time
 import numpy
 from mpi4py import MPI
 
+# Run command
 # mpiexec -np 2 py lab_5.py
 
-SEND_MODE = 'DEFAULT'
+SEND_MODE = 's'
 VECTORS_MODE = 'RANDOM'
 TAG = 2
-VECTOR_A = [1, 2, 3, 4, 5]
-VECTOR_B = [1, 1, 1, 1, 2]
+VECTOR_A = [1, 2, 3, 4, 5, 1]
+VECTOR_B = [1, 1, 1, 1, 2, 1]
 
-VECTORS_LEN = 10000
+VECTORS_LEN = 100
 MIN_NUMBER = -1000
 MAX_NUMBER = 1000
 
 file_name = os.path.basename(__file__)
 logger = logging.getLogger(file_name)
 logging.basicConfig(
-    filename='logs.log',
+    filename='logs/logs.log',
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 )
@@ -30,21 +31,22 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 
-def send(comm: MPI.Intracomm, **kwargs):
-    if SEND_MODE == 'R':
-        return comm.Rsend(**kwargs)
-    if SEND_MODE == 'b':
-        return comm.bsend(**kwargs)
-    if SEND_MODE == 'B':
-        return comm.Bsend(**kwargs)
+def send_message(comm: MPI.Intracomm, **kwargs):
     if SEND_MODE == 's':
         return comm.ssend(**kwargs)
-    if SEND_MODE == 'S':
-        return comm.Ssend(**kwargs)
     if SEND_MODE == 'i':
         return comm.isend(**kwargs)
+    if SEND_MODE == 'is':
+        return comm.issend(**kwargs)
 
     return comm.send(**kwargs)
+
+
+def recv(comm: MPI.Intracomm, **kwargs):
+    if 'i' in SEND_MODE:
+        return comm.irecv(**kwargs)
+
+    return comm.recv(**kwargs)
 
 
 if VECTORS_MODE == 'RANDOM':
@@ -80,22 +82,36 @@ if __name__ == '__main__':
                 fragment_from_b = vector_b[vector_split_len * (proc_rank - 1): vector_split_len * proc_rank]
 
             # Сборка векторов в один и отправка
-            fragment_for_send = numpy.array(list(fragment_from_a) + list(fragment_from_b))
-            logger.info('bsend {}'.format(fragment_for_send))
-            comm.Send(buf=fragment_for_send, dest=proc_rank, tag=TAG)
-            logger.info('sended {}'.format(fragment_for_send))
-            print('Proc {} sent message: {}'.format(rank, fragment_for_send))
+            # fragment_for_send = numpy.array(list(fragment_from_a) + list(fragment_from_b))
+            fragment_for_send = list(fragment_from_a) + list(fragment_from_b)
+            send_request = send_message(
+                comm=comm,
+                obj=fragment_for_send,
+                dest=proc_rank,
+                tag=TAG,
+            )
+            if isinstance(send_request, MPI.Request):
+                send_request.wait()
 
-        result = 0
+            logger.info('Sent message to {}: {}'.format(proc_rank, fragment_for_send))
+
         # Получение результатов от процессов и вычисление скалярного произведения
+        result = 0
         for proc_rank in range(1, size):
             buffer = numpy.arange(1)
-            comm.Recv(buf=buffer, source=proc_rank, tag=TAG)
-            print('Proc {} got message: {}'.format(rank, buffer))
-            result += buffer[0]
+            answer = recv(comm=comm, source=proc_rank, tag=TAG)
+            if isinstance(answer, MPI.Request):
+                answer = answer.wait()
 
-        print('Result: {}'.format(result))
-        print('Time: {} seconds'.format(time.time() - start_time))
+            logger.info('Recv message from {}: {}'.format(proc_rank, answer))
+            result += answer[0]
+
+        result_message = 'Result: {}'.format(result)
+        time_message = 'Time: {} seconds'.format(time.time() - start_time)
+        print(result_message)
+        logger.info(result_message)
+        print(time_message)
+        logger.warning(time_message)
     else:
         # Вычисление размерности получаемого вектора
         buffer_len = vector_split_len * 2
@@ -103,17 +119,25 @@ if __name__ == '__main__':
             buffer_len += (vectors_len % (size - 1)) * 2
 
         # Получение данных от 0 процесса
-        buffer = numpy.arange(buffer_len)
-        comm.Recv(buf=buffer, source=0, tag=TAG)
-        logger.info('recv {}'.format(buffer))
-        print('Proc {} got message: {}'.format(rank, buffer))
-        fragment_from_a = buffer[:buffer_len // 2]
-        fragment_from_b = buffer[buffer_len // 2:]
+        # buffer = numpy.arange(buffer_len)
+        answer = recv(comm=comm, source=0, tag=TAG)
+        if isinstance(answer, MPI.Request):
+            answer = answer.wait()
+
+        buffer_middle_index = buffer_len // 2
+        fragment_from_a = answer[:buffer_middle_index]
+        fragment_from_b = answer[buffer_middle_index:]
 
         result = 0
         for coord_a, coord_b in zip(fragment_from_a, fragment_from_b):
             result += coord_a * coord_b
 
         number_for_send = numpy.array([result])
-        comm.Send(buf=number_for_send, dest=0, tag=TAG)
-        print('Proc {} sent message: {}'.format(rank, number_for_send))
+        send_request = send_message(
+            comm=comm,
+            obj=number_for_send,
+            dest=0,
+            tag=TAG,
+        )
+        if isinstance(send_request, MPI.Request):
+            send_request.wait()
