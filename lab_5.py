@@ -1,10 +1,12 @@
-import logging
 import os
+import logging
 import random
 import time
 
 import numpy
 from mpi4py import MPI
+
+from mpi_utils import isend, ssend, issend, bsend, ibsend, rsend, irsend, send
 
 # Run command
 # mpiexec -np 2 py lab_5.py
@@ -32,14 +34,22 @@ size = comm.Get_size()
 
 
 def send_message(comm: MPI.Intracomm, **kwargs):
-    if SEND_MODE == 's':
-        return comm.ssend(**kwargs)
     if SEND_MODE == 'i':
-        return comm.isend(**kwargs)
+        return isend(comm=comm, **kwargs)
+    if SEND_MODE == 's':
+        return ssend(comm=comm, **kwargs)
     if SEND_MODE == 'is':
-        return comm.issend(**kwargs)
+        return issend(comm=comm, **kwargs)
+    if SEND_MODE == 'b':
+        return bsend(comm=comm, **kwargs)
+    if SEND_MODE == 'ib':
+        return ibsend(comm=comm, **kwargs)
+    if SEND_MODE == 'r':
+        return rsend(comm=comm, **kwargs)
+    if SEND_MODE == 'ir':
+        return irsend(comm=comm, **kwargs)
 
-    return comm.send(**kwargs)
+    return send(comm=comm, **kwargs)
 
 
 def recv(comm: MPI.Intracomm, **kwargs):
