@@ -17,9 +17,9 @@ TAG = 2
 VECTOR_A = [1, 2, 3, 4, 5, 1]
 VECTOR_B = [1, 1, 1, 1, 2, 1]
 
-VECTORS_LEN = 100
-MIN_NUMBER = -1000
-MAX_NUMBER = 1000
+VECTORS_LEN = 10000
+MIN_NUMBER = -100
+MAX_NUMBER = 100
 
 file_name = os.path.basename(__file__)
 logger = logging.getLogger(file_name)
@@ -92,8 +92,7 @@ if __name__ == '__main__':
                 fragment_from_b = vector_b[vector_split_len * (proc_rank - 1): vector_split_len * proc_rank]
 
             # Сборка векторов в один и отправка
-            # fragment_for_send = numpy.array(list(fragment_from_a) + list(fragment_from_b))
-            fragment_for_send = list(fragment_from_a) + list(fragment_from_b)
+            fragment_for_send = numpy.array(list(fragment_from_a) + list(fragment_from_b))
             send_request = send_message(
                 comm=comm,
                 obj=fragment_for_send,
@@ -117,7 +116,7 @@ if __name__ == '__main__':
             result += answer[0]
 
         result_message = 'Result: {}'.format(result)
-        time_message = 'Time: {} seconds'.format(time.time() - start_time)
+        time_message = 'Time: {} ms'.format(round((time.time() - start_time) * 1000))
         print(result_message)
         logger.info(result_message)
         print(time_message)
