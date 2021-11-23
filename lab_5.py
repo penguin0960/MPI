@@ -6,7 +6,7 @@ import time
 import numpy
 from mpi4py import MPI
 
-from mpi_utils import isend, ssend, issend, bsend, ibsend, rsend, irsend, send
+from mpi_utils import MPI_Isend, MPI_Ssend, MPI_Issend, MPI_Bsend, MPI_Ibsend, MPI_Rsend, MPI_Irsend, MPI_Send
 
 # Run command
 # mpiexec -np 2 py lab_5.py
@@ -35,21 +35,21 @@ size = comm.Get_size()
 
 def send_message(comm: MPI.Intracomm, **kwargs):
     if SEND_MODE == 'i':
-        return isend(comm=comm, **kwargs)
+        return MPI_Isend(comm=comm, **kwargs)
     if SEND_MODE == 's':
-        return ssend(comm=comm, **kwargs)
+        return MPI_Ssend(comm=comm, **kwargs)
     if SEND_MODE == 'is':
-        return issend(comm=comm, **kwargs)
+        return MPI_Issend(comm=comm, **kwargs)
     if SEND_MODE == 'b':
-        return bsend(comm=comm, **kwargs)
+        return MPI_Bsend(comm=comm, **kwargs)
     if SEND_MODE == 'ib':
-        return ibsend(comm=comm, **kwargs)
+        return MPI_Ibsend(comm=comm, **kwargs)
     if SEND_MODE == 'r':
-        return rsend(comm=comm, **kwargs)
+        return MPI_Rsend(comm=comm, **kwargs)
     if SEND_MODE == 'ir':
-        return irsend(comm=comm, **kwargs)
+        return MPI_Irsend(comm=comm, **kwargs)
 
-    return send(comm=comm, **kwargs)
+    return MPI_Send(comm=comm, **kwargs)
 
 
 def recv(comm: MPI.Intracomm, **kwargs):
@@ -123,20 +123,14 @@ if __name__ == '__main__':
         print(time_message)
         logger.warning(time_message)
     else:
-        # Вычисление размерности получаемого вектора
-        buffer_len = vector_split_len * 2
-        if rank == size - 1:
-            buffer_len += (vectors_len % (size - 1)) * 2
-
         # Получение данных от 0 процесса
-        # buffer = numpy.arange(buffer_len)
         answer = recv(comm=comm, source=0, tag=TAG)
         if isinstance(answer, MPI.Request):
             answer = answer.wait()
 
-        buffer_middle_index = buffer_len // 2
-        fragment_from_a = answer[:buffer_middle_index]
-        fragment_from_b = answer[buffer_middle_index:]
+        answer_middle_index = len(answer) // 2
+        fragment_from_a = answer[:answer_middle_index]
+        fragment_from_b = answer[answer_middle_index:]
 
         result = 0
         for coord_a, coord_b in zip(fragment_from_a, fragment_from_b):
