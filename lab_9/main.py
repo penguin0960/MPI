@@ -1,7 +1,6 @@
 import datetime
 import hashlib
 import json
-import os
 import tkinter as tk
 import uuid
 from tkinter import scrolledtext
@@ -157,8 +156,6 @@ button.grid(row=3)
 output_label = scrolledtext.ScrolledText(
     window,
     width=60
-    # text='',
-    # justify='left',
 )
 output_label.grid(
     row=1,
