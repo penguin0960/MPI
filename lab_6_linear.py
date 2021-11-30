@@ -1,11 +1,6 @@
-import os
-import logging
 import random
 import time
 
-
-# Run command
-# mpiexec -np 2 py lab_5.py
 
 RANDOM_MODE = True
 MATRIX_A = [
@@ -22,14 +17,6 @@ MATRIX_B = [
 VECTORS_LEN = 200
 MIN_NUMBER = -100
 MAX_NUMBER = 100
-
-file_name = os.path.basename(__file__)
-logger = logging.getLogger(file_name)
-logging.basicConfig(
-    filename='logs/logs.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
 
 
 def init_test_data():
@@ -54,8 +41,6 @@ def init_test_data():
     if width_matrix_a != len(matrix_b):
         raise Exception('Cant multiple this matrix!')
 
-    matrix_a_len = len(matrix_a)
-
     return matrix_a, matrix_b
 
 
@@ -73,8 +58,7 @@ if __name__ == '__main__':
         for line_a in matrix_a
     ]
 
-    result_message = 'Result:'
     time_message = 'Time: {} ms'.format(round((time.time() - start_time) * 1000))
-    print(result_message)
+    print('Result:')
     print(*result, sep='\n')
     print(time_message)
